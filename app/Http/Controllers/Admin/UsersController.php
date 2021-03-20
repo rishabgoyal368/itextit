@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 
 use App\User;
 use Auth;
+use Mail;
 
 class UsersController extends Controller
 {
@@ -41,9 +42,9 @@ class UsersController extends Controller
             } else if ($request->isMethod('POST')) {
                 $data = $request->all();
                 $validator =  Validator::make($data, [
-                    'first_name' =>  'required',
-                    'email' => 'required|email',
-                    'mobile_number' => 'required|numeric',
+                    'full_name' =>  'required',
+                    'email' => 'required|email|unique:users,email,' . @$data['id'] . ',id,deleted_at,NULL',
+                    'mobile_number' => 'nullable|numeric|unique:users,mobile_number',
                     'status' => 'required',
                     'password' => @$data['id'] ? 'nullable' : 'required|confirmed',
                 ]);
@@ -55,6 +56,12 @@ class UsersController extends Controller
                     $data['password'] = $user['password'];
                     $msz =  'Updated';
                 } else {
+                    $email = $request['email'];
+                    if (!filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+                        Mail::send('emails.user_register_success', ['name' => ucfirst($data['full_name']), 'email' => $email, 'password' => $data['password']], function ($message) use ($email) {
+                            $message->to($email, env('APP_NAME'))->subject('User registered successfully');
+                        });
+                    }
                     $data['password'] = Hash::make($request['password']);
                     $msz =  'Added';
                 }
@@ -63,7 +70,6 @@ class UsersController extends Controller
                 return redirect('admin/manage-users')->with(['success', 'User ' . $msz . ' Successfully']);
             }
         } catch (\Exception $e) {
-            return $e->getMessage();
             return redirect()->back()->with(['error' => $e->getMessage()]);
         }
     }

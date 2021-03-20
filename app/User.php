@@ -14,6 +14,9 @@ class User extends Authenticatable implements JWTSubject
     use Notifiable;
     use SoftDeletes;
 
+    const EMAILLOGINTYPE = 'email';
+    const ACTIVESTATUS = 'Active';
+
     /**
      * The attributes that are mass assignable.
      *
@@ -21,13 +24,17 @@ class User extends Authenticatable implements JWTSubject
      */
     protected $fillable = [
         // 'name', 'email', 'password',
-        'first_name',
-        'last_name',
+        'full_name',
         'email',
-        // 'email_verified_at',
         'mobile_number',
-        'profile_image',
+        'country_code',
+        'login_type',
+        'otp',
         'password',
+        'refrence_id',
+        'calender_id',
+        'profile_image',
+        'device_token',
         'status',
     ];
 
@@ -37,7 +44,7 @@ class User extends Authenticatable implements JWTSubject
      * @var array
      */
     protected $hidden = [
-        'password', 'remember_token',
+        'password', 'remember_token','country_code','device_token'
     ];
 
     /**
@@ -54,23 +61,37 @@ class User extends Authenticatable implements JWTSubject
         return User::updateOrCreate(
             ['id' => @$data['id']],
             [
-                'first_name' => @$data['first_name'],
-                'last_name' => @$data['last_name'],
-                'email' => @$data['email'],
-                // 'email_verified_at' => @$data['email_verified_at'],
-                'mobile_number' => @$data['mobile_number'],
-                // 'profile_image' => @$data['profile_image'],
-                'password' => @$data['password'],
-                'status' => @$data['status']
+                'full_name' => @$data['full_name'] ?: '',
+                'email' => @$data['email'] ?: '',
+                'mobile_number' => @$data['mobile_number'] ?: '',
+                'login_type' => @$data['login_type'] ?: '',
+                'otp' => @$data['otp'] ?: '',
+                'password' => @$data['password'] ?: '',
+                'refrence_id' => @$data['refrence_id'] ?: '',
+                'calender_id' => @$data['calender_id'] ?: '',
+                'profile_image' => @$data['profile_image'] ?: '',
+                'device_token' => @$data['device_token'] ?: '',
+                'status' => @$data['status'] ?: '',
             ]
         );
     }
 
-    public function getJWTIdentifier(){
+    public function getProfileImageAttribute($value)
+    {
+        if ($value) {
+            return asset('uploads/' . $value);
+        }
+        return  asset('no_profile.jpeg');
+    }
+
+    public function getJWTIdentifier()
+    {
         return $this->getKey();
     }
 
-    public function getJWTCustomClaims(){
+    public function getJWTCustomClaims()
+    {
         return [];
     }
+
 }

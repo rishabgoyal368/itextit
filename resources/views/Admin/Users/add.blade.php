@@ -27,20 +27,20 @@
                             <input type="hidden" name="id" value="{{@$user['id']}}">
                             <div class="form-row">
                                 <div class="form-group col-md-6">
-                                    <label for="inputEmail4">First Name</label>
-                                    <input type="text" class="form-control" name="first_name" id="first_name" placeholder="First Name*" required value="{{old('first_name') ?: @$user->first_name}}">
-                                    @if ($errors->has('first_name'))
+                                    <label for="inputEmail4">Full Name</label>
+                                    <input type="text" class="form-control" name="full_name" id="full_name" placeholder="Full Name*" required value="{{old('full_name') ?: @$user->full_name}}">
+                                    @if ($errors->has('full_name'))
                                     <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $errors->first('first_name') }}</strong>
+                                        <strong>{{ $errors->first('full_name') }}</strong>
                                     </span>
                                     @endif
                                 </div>
                                 <div class="form-group col-md-6">
-                                    <label for="inputEmail4">Last Name</label>
-                                    <input type="text" class="form-control" value="{{old('last_name') ?: @$user->last_name}}" name="last_name" id="last_name" placeholder="Last Name*" required>
-                                    @if ($errors->has('last_name'))
+                                    <label for="inputEmail4">Refrence ID</label>
+                                    <input type="text" class="form-control" name="refrence_id" id="refrence_id" placeholder="Refrence ID*" value="{{old('refrence_id') ?: @$user->refrence_id}}">
+                                    @if ($errors->has('refrence_id'))
                                     <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $errors->first('last_name') }}</strong>
+                                        <strong>{{ $errors->first('refrence_id') }}</strong>
                                     </span>
                                     @endif
                                 </div>
@@ -57,7 +57,7 @@
                                 </div>
                                 <div class="form-group col-md-6">
                                     <label for="inputEmail4">Mobile Number</label>
-                                    <input type="number" class="form-control" value="{{old('mobile_number') ?: @$user->mobile_number}}" name="mobile_number" id="mobile_number" placeholder="Mobile Number*" required>
+                                    <input type="number" class="form-control" value="{{old('mobile_number') ?: @$user->mobile_number}}" name="mobile_number" id="mobile_number" placeholder="Mobile Number*" >
                                     @if ($errors->has('mobile_number'))
                                     <span class="invalid-feedback" role="alert">
                                         <strong>{{ $errors->first('mobile_number') }}</strong>
@@ -93,8 +93,8 @@
                                     <label for="inputPassword4">Status</label>
                                     <select name="status" class="form-control js-select2" required>
                                         <option selected disabled>Select Status</option>
-                                        <option value="Active" @if($user->status == 'Active') selected @endif>Active</option>
-                                        <option value="Deactivate" @if($user->status == 'Deactivate') selected @endif>Deactivate</option>
+                                        <option value="Active" @if(@$user->status == 'Active') selected @endif>Active</option>
+                                        <option value="Deactivate" @if(@$user->status == 'Deactivate') selected @endif>Deactivate</option>
                                     </select>
                                     @if ($errors->has('status'))
                                     <span class="invalid-feedback" role="alert">

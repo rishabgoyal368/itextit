@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use App\User;
 use App\Admin;
-use Mail, Hash, Auth;
+use Mail, Hash, Auth, File;
 
 class ApiController extends Controller
 {
@@ -20,35 +20,25 @@ class ApiController extends Controller
     {
         $data = $request->all();
         $validator = Validator::make(
-            $request->all(),
+            $data,
             [
-                'first_name' => 'required',
-                'last_name'     => 'required',
-                'email'         => 'required|email',
-                'password'     => 'required',
-                'mobile_number' => 'required|numeric'
+                'full_name' =>  'required',
+                'email' => 'required|email|unique:users,email,Null,id,deleted_at,NULL',
+                'mobile_number' => 'required|numeric|unique:users,mobile_number',
+                'password' => 'required',
             ]
         );
-
         if ($validator->fails()) {
-
-            return response()->json(['error' => $validator->errors()], 401);
+            $response['code'] = 404;
+            $response['status'] = $validator->errors()->first();
+            $response['message'] = "missing parameters";
+            return response()->json($response);
         }
-
-        $check_email_exists = User::where('email', $data['email'])->first();
-        if (!empty($check_email_exists)) {
-            return response()->json(['error' => 'This Email is already exists.'], 401);
-        }
-
-
-        $user                     = new User();
-        $user->first_name         = $data['first_name'];
-        $user->last_name          = $data['last_name'];
-        $user->email              = $data['email'];
-        $user->mobile_number     = $data['mobile_number'];
         $hash_password          = Hash::make($data['password']);
-        $user->password         = str_replace("$2y$", "$2a$", $hash_password);
-        $user->status             = 'Active';
+        $data['password'] = $hash_password;
+        $data['login_type'] = User::EMAILLOGINTYPE;
+        $data['status'] = User::ACTIVESTATUS;
+        $user = User::addEdit($data);
         if ($user->save()) {
             $project_name = env('App_name');
             $email = $data['email'];
@@ -60,9 +50,9 @@ class ApiController extends Controller
                 }
             } catch (Exception $e) {
             }
-            return response()->json(['success' => true, 'data' => $user], Response::HTTP_OK);
+            return response()->json(['message' => 'User register Successfuly', 'data' => $user, 'code' => 200]);
         } else {
-            return response()->json(['error' => false, 'data' => 'Something went wrong, Please try again later.']);
+            return response()->json(['message' => 'Something went wrong', 'data' => [], 'code' => 400]);
         }
     }
 
@@ -76,17 +66,75 @@ class ApiController extends Controller
                 'password'   => 'required'
             ]
         );
-
         if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 401);
+            $response['code'] = 404;
+            $response['status'] = $validator->errors()->first();
+            $response['message'] = "missing parameters";
+            return response()->json($response);
         }
         $token = auth()->attempt($credentials);
-        if ($token ) {
-            return $this->respondWithToken($token);
+        if ($token) {
+            $user = auth()->userOrFail();
+            return response()->json(['message' => 'User login Successfuly', 'token' => $token, 'data' => $user, 'code' => 200]);
         } else {
-            $response = ["message" => 'Invalid Details'];
-            return response($response, 422);
+            return response()->json(['message' => 'Something went wrong', 'code' => 400]);
         }
+    }
+
+    public function profile(Request $request)
+    {
+        try {
+            $user = auth()->userOrFail();
+            return response()->json(['message' => 'User Profile', 'data' => $user, 'code' => 200]);
+        } catch (\Tymon\JWTAuth\Exceptions\UserNotDefinedException $e) {
+            return response()->json(['message' => 'Something went wrong, Please try again later.', 'code' => 400]);
+        }
+    }
+
+    public function deleteImage($designation, $image)
+    {
+        if ($image && file_exists(public_path('uploads/' . $image))) {
+            unlink($designation . $image);
+        }
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $user =   auth()->userOrFail();
+        $data = $request->all();
+        $data['id'] = $user['id'];
+        $validator = Validator::make(
+            $data,
+            [
+                'full_name' =>  'required',
+                'email' => 'required|email|unique:users,email,' . @$data['id'] . ',id,deleted_at,NULL',
+                'mobile_number' => 'required|unique:users,mobile_number,' . @$data['id'] . ',id,deleted_at,NULL',
+                'profile_image' => 'nullable|mimes:jpeg,jpg,png,gif|max:10000',
+            ]
+        );
+
+        if ($validator->fails()) {
+            $response['code'] = 404;
+            $response['status'] = $validator->errors()->first();
+            $response['message'] = "missing parameters";
+            return response()->json($response);
+        }
+        $old_image = $user->getAttributes()['profile_image'];
+        $user->full_name         = $data['full_name'];
+        $user->email              = $data['email'];
+        $user->mobile_number     = $data['mobile_number'];
+        $user->refrence_id     = @$data['refrence_id'];
+        $user->calender_id     = @$data['calender_id'];
+        if (@$data['profile_image']) {
+            $fileName = time() . '.' . $request->profile_image->extension();
+            $request->profile_image->move(public_path('uploads'), $fileName);
+            $user->profile_image     = $fileName;
+            $this->deleteImage('uploads/', $old_image);
+        } else {
+            $user->profile_image = $old_image;
+        }
+        $user->save();
+        return response()->json(['data' => $user, 'message' => 'Profile updated successfully!', 'code' => 200]);
     }
 
     public function forgot_password(Request $request)
@@ -99,7 +147,6 @@ class ApiController extends Controller
         );
 
         if ($validator->fails()) {
-
             return response()->json(['error' => $validator->errors()], 401);
         }
 
@@ -122,9 +169,9 @@ class ApiController extends Controller
                 }
             } catch (Exception $e) {
             }
-            return response()->json(['success' => true, 'data' => 'Email sent on registered Email-id.'], Response::HTTP_OK);
+            return response()->json(['message' => 'OTP Send Successfully', 'code' => 200]);
         } else {
-            return response()->json(['error' => false, 'data' => 'Something went wrong, Please try again later.']);
+            return response()->json(['message' => 'Something went wrong, Please try again later.', 'code' => 400]);
         }
     }
 
@@ -162,7 +209,7 @@ class ApiController extends Controller
                 if ($check_email->save()) {
                     return response()->json(['success' => true, 'message' => 'Password changed successfully.']);
                 } else {
-                    return response()->json(['error' => 'Something went wrong, Please try again later.']);
+                    return response()->json(['error' => 'Something went wrong, Please try again later.', 'code' => 400]);
                 }
             } else {
                 return response()->json(['error' => 'OTP mismatch']);
@@ -170,39 +217,18 @@ class ApiController extends Controller
         }
     }
 
-    public function profile(Request $request)
-    {
 
-        $validator = Validator::make(
-            $request->all(),
-            [
-                'token'      => 'required'
-            ]
-        );
-
-        if ($validator->fails()) {
-            return response()->json(['error' => 'Token not found.'], 401);
-        }
-
-        try {
-            $user = auth()->userOrFail();
-        } catch (\Tymon\JWTAuth\Exceptions\UserNotDefinedException $e) {
-            return response()->json(['error' => $q->getMessage()], 401);
-        }
-
-        return response()->json(['success' => true, 'data' => $user], 200);
-    }
 
     public function logout()
     {
         Auth::guard('api')->logout();
-
-        return response()->json(['status' => 'success', 'message' => 'logout'], 200);
+        return response()->json(['message' => 'Logout Successfully', 'code' => 200]);
     }
 
 
     public function respondWithToken($token)
     {
+        return $token;
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',

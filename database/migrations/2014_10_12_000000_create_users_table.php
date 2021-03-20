@@ -15,19 +15,24 @@ class CreateUsersTable extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('first_name');
-            $table->string('last_name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->timestamp('otp')->nullable();
-            $table->string('mobile_number');
-            $table->string('profile_image')->nullable();
+            $table->string('full_name');
+            $table->string('email');
+            $table->string('mobile_number')->nullable();
+            $table->string('country_code')->nullable();
+            $table->string('login_type')->nullable();
+            $table->string('otp')->nullable();
             $table->string('password');
-            $table->string('status')->nullable();
-            $table->rememberToken();
+            $table->string('refrence_id')->nullable();            
+            $table->string('calender_id')->nullable();            
+            $table->string('profile_image')->nullable();
+            $table->string('device_token')->nullable();
+            $table->string('status')->default('inactive');
+            $table->softDeletes('deleted_at')->nullable();
             $table->timestamps();
         });
     }
+
+    
 
     /**
      * Reverse the migrations.

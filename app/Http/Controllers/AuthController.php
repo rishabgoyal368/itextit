@@ -43,7 +43,7 @@ class AuthController extends Controller
 
 
     public function logout(){
-    	Auth::logout();
+		Auth::guard('admin')->logout();
     	Session::flush();
     	return redirect('/')->with('success','You logged out successfully');
     }
