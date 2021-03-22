@@ -16,6 +16,97 @@ use Mail, Hash, Auth, File;
 
 class ApiController extends Controller
 {
+    /**
+     * @OA\Info(
+     *   title="Itextit API Documentation",
+     *   version="1.0",
+     *   @OA\Contact(
+     *     email="@.com",
+     *     name="Support Team"
+     *   )
+     * )
+     */
+
+
+    /**
+     * @OA\SecurityScheme(
+     * type="apiKey",
+     * description="Login with email and password to get the authentication token",
+     * name="Authorization",
+     * in="header",
+     * scheme="bearer",
+     * bearerFormat="JWT",
+     * securityScheme="apiAuth",
+     * )
+     */
+
+
+    /**
+     *  
+     * 
+     * @OA\Post(
+     *     path="/api/register",
+     *     operationId="register",
+     *     description="User register",
+     *     tags={"User"},
+     *     @OA\Parameter(
+     *          name="full_name",
+     *          in="query",
+     *          required=true, 
+     *          @OA\Schema(
+     *           type="string",
+     *          )
+     *      ),
+     *     @OA\Parameter(
+     *          name="email",
+     *          in="query",
+     *          required=true, 
+     *          @OA\Schema(
+     *           type="string",
+     *          )
+     *      ),
+     *     @OA\Parameter(
+     *          name="mobile_number",
+     *          in="query",
+     *          required=true, 
+     *          @OA\Schema(
+     *           type="string",
+     *          )
+     *      ),
+     *     @OA\Parameter(
+     *          name="password",
+     *          in="query",
+     *          required=true, 
+     *          @OA\Schema(
+     *           type="string",
+     *          )
+     *      ),
+     * 
+     *      @OA\Parameter(
+     *          name="password_confirmation",
+     *          in="query",
+     *          required=true, 
+     *          @OA\Schema(
+     *           type="string",
+     *          )
+     *      ),
+     * 
+     *       @OA\Response(
+     *          response=200,
+     *          description="Success",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Success response.")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Error: Bad Request",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Parameters Missing")
+     *          )
+     *      )
+     *  )
+     */
     public function user_registration(Request $request)
     {
         $data = $request->all();
@@ -25,7 +116,7 @@ class ApiController extends Controller
                 'full_name' =>  'required',
                 'email' => 'required|email|unique:users,email,Null,id,deleted_at,NULL',
                 'mobile_number' => 'required|numeric|unique:users,mobile_number',
-                'password' => 'required',
+                'password' => 'required|confirmed',
             ]
         );
         if ($validator->fails()) {
@@ -52,10 +143,51 @@ class ApiController extends Controller
             }
             return response()->json(['message' => 'User register Successfuly', 'data' => $user, 'code' => 200]);
         } else {
-            return response()->json(['message' => 'Something went wrong', 'data' => [], 'code' => 400]);
+            return response()->json(['message' => 'Something went wrong', 'code' => 400]);
         }
     }
 
+
+    /** 
+     * @OA\Post(
+     *     path="/api/login",
+     *     operationId="login",
+     *     description="User login",
+     *     tags={"User"},
+     * 
+     *     @OA\Parameter(
+     *          name="email",
+     *          in="query",
+     *          required=true, 
+     *          @OA\Schema(
+     *           type="string",
+     *          )
+     *      ),
+     *     @OA\Parameter(
+     *          name="password",
+     *          in="query",
+     *          required=true, 
+     *          @OA\Schema(
+     *           type="string",
+     *          )
+     *      ),
+     * 
+     *       @OA\Response(
+     *          response=200,
+     *          description="Success",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Success response.")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Error: Bad Request",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Parameters Missing")
+     *          )
+     *      )
+     *  )
+     */
     public function user_login(Request $request)
     {
         $credentials = $request->only('email', 'password');
@@ -81,6 +213,31 @@ class ApiController extends Controller
         }
     }
 
+    /** 
+     * @OA\Post(
+     *     path="/api/get-profile",
+     *     operationId="get-profile",
+     *     description="User profile",
+     *     tags={"User"},
+     *     security={{ "apiAuth": {} }},
+     *
+     * 
+     *       @OA\Response(
+     *          response=200,
+     *          description="Success",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Success response.")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Error: Bad Request",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Parameters Missing")
+     *          )
+     *      )
+     *  )
+     */
     public function profile(Request $request)
     {
         try {
@@ -98,6 +255,68 @@ class ApiController extends Controller
         }
     }
 
+    /** 
+     * @OA\Post(
+     *     path="/api/update-profile",
+     *     operationId="update-profile",
+     *     description="udpate user profile",
+     *     tags={"User"},
+     *     security={{ "apiAuth": {} }},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(      
+     *                 @OA\Property(
+     *                     description="file to upload",
+     *                     property="profile_image",
+     *                     type="file",
+     *                     format="file",
+     *                 ),
+     *             )
+     *         ),
+     *     ),
+     *      @OA\Parameter(
+     *          name="full_name",
+     *          in="query",
+     *          required=true, 
+     *          @OA\Schema(
+     *           type="string",
+     *          )
+     *      ),
+     *      @OA\Parameter(
+     *          name="email",
+     *          in="query",
+     *          required=true, 
+     *          @OA\Schema(
+     *           type="string",
+     *          )
+     *      ),
+     *      @OA\Parameter(
+     *          name="mobile_number",
+     *          in="query",
+     *          required=true, 
+     *          @OA\Schema(
+     *           type="string",
+     *          )
+     *      ), 
+     * 
+     *       @OA\Response(
+     *          response=200,
+     *          description="Success",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Success response.")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Error: Bad Request",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Parameters Missing")
+     *          )
+     *      )
+     *  )
+     */
     public function updateProfile(Request $request)
     {
         $user =   auth()->userOrFail();
@@ -137,6 +356,38 @@ class ApiController extends Controller
         return response()->json(['data' => $user, 'message' => 'Profile updated successfully!', 'code' => 200]);
     }
 
+    /** 
+     * @OA\Post(
+     *     path="/api/forgot-password",
+     *     operationId="forgot-password",
+     *     description="user forget password",
+     *     tags={"User"},
+     * 
+     *      @OA\Parameter(
+     *          name="email",
+     *          in="query",
+     *          required=true, 
+     *          @OA\Schema(
+     *           type="string",
+     *          )
+     *      ),
+     *      
+     *       @OA\Response(
+     *          response=200,
+     *          description="Success",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Success response.")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Error: Bad Request",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Parameters Missing")
+     *          )
+     *      )
+     *  )
+     */
     public function forgot_password(Request $request)
     {
         $validator = Validator::make(
@@ -147,17 +398,23 @@ class ApiController extends Controller
         );
 
         if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 401);
+            $response['code'] = 404;
+            $response['status'] = $validator->errors()->first();
+            $response['message'] = "missing parameters";
+            return response()->json($response);
         }
 
 
         $check_email_exists = User::where('email', $request['email'])->first();
         if (empty($check_email_exists)) {
-            return response()->json(['error' => 'Email not exists.'], 401);
+            $response['code'] = 404;
+            $response['status'] = 'Email not exists';
+            $response['message'] = "missing parameters";
+            return response()->json($response);
         }
 
 
-        $check_email_exists->otp           =  rand(1111, 9999);
+        $check_email_exists->otp =  rand(1111, 9999);
         if ($check_email_exists->save()) {
             $project_name = env('App_name');
             $email = $request['email'];
@@ -175,6 +432,64 @@ class ApiController extends Controller
         }
     }
 
+
+    /** 
+     * @OA\Post(
+     *     path="/api/reset-password",
+     *     operationId="reset-password",
+     *     description="user Reset password",
+     *     tags={"User"},
+     * 
+     *      @OA\Parameter(
+     *          name="otp",
+     *          in="query",
+     *          required=true, 
+     *          @OA\Schema(
+     *           type="string",
+     *          )
+     *      ),
+     *      
+     *       @OA\Parameter(
+     *          name="email",
+     *          in="query",
+     *          required=true, 
+     *          @OA\Schema(
+     *           type="string",
+     *          )
+     *      ),
+     *       @OA\Parameter(
+     *          name="password",
+     *          in="query",
+     *          required=true, 
+     *          @OA\Schema(
+     *           type="string",
+     *          )
+     *      ),
+     *       @OA\Parameter(
+     *          name="confirm_password",
+     *          in="query",
+     *          required=true, 
+     *          @OA\Schema(
+     *           type="string",
+     *          )
+     *      ),
+     * 
+     *       @OA\Response(
+     *          response=200,
+     *          description="Success",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Success response.")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Error: Bad Request",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Parameters Missing")
+     *          )
+     *      )
+     *  )
+     */
     public function reset_password(Request $request)
     {
         $data = $request->all();
@@ -189,15 +504,20 @@ class ApiController extends Controller
         );
 
         if ($validator->fails()) {
-
-            return response()->json(['error' => $validator->errors()], 401);
+            $response['code'] = 404;
+            $response['status'] = $validator->errors()->first();
+            $response['message'] = "missing parameters";
+            return response()->json($response);
         }
 
 
         $email = $data['email'];
         $check_email = User::where('email', $email)->first();
         if (empty($check_email['otp'])) {
-            return response()->json(['error' => 'Something went wrong, Please try again later.']);
+            $response['code'] = 404;
+            $response['status'] = "Something went wrong, Please try again later";
+            $response['message'] = "missing parameters";
+            return response()->json($response);
         }
         if (empty($check_email)) {
             return response()->json(['error' => 'This Email-id is not exists.']);
@@ -207,18 +527,41 @@ class ApiController extends Controller
                 $check_email->password          = str_replace("$2y$", "$2a$", $hash_password);
                 $check_email->otp               = null;
                 if ($check_email->save()) {
-                    return response()->json(['success' => true, 'message' => 'Password changed successfully.']);
+                    return response()->json(['message' => 'Password changed successfully.', 'code' => 200]);
                 } else {
                     return response()->json(['error' => 'Something went wrong, Please try again later.', 'code' => 400]);
                 }
             } else {
-                return response()->json(['error' => 'OTP mismatch']);
+                return response()->json(['message' => 'OTP mismatch!', 'code' => 400]);
             }
         }
     }
 
 
-
+    /** 
+     * @OA\Post(
+     *     path="/api/logout",
+     *     operationId="logout",
+     *     description="user logout",
+     *     tags={"User"},
+     *     security={{ "apiAuth": {} }},
+     * 
+     *       @OA\Response(
+     *          response=200,
+     *          description="Success",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Success response.")
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=400,
+     *          description="Error: Bad Request",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Parameters Missing")
+     *          )
+     *      )
+     *  )
+     */
     public function logout()
     {
         Auth::guard('api')->logout();
